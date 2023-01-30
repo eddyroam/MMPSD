@@ -13,6 +13,10 @@ import os
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
+InputData = "FTIR"      #Change between "FTIR", "Raman" or "LIBS"
+OutputData = "Raman"    #Change between "FTIR", "Raman" or "LIBS"
+
+
 def WeightsInit(m): 
     if isinstance(m, nn.Conv1d):
         nn.init.xavier_uniform_(m.weight.data)
@@ -27,18 +31,16 @@ else:
 #Hyperparameters
 kfold = 5
 batch_size = 128
-epochs = 10
+epochs = 100
 lr = 0.001
 num_runs = 10
 DataType = {"FTIR": 0, "Raman": 1, "LIBS":2}
-InputData = "FTIR" #change when necessary
-OutputData = "Raman" #change when necessary
 
 #Loading Datasets
 ftir_x, ftir_y = DataProcess("FTIR").BuildTrainingData()
 raman_x, raman_y = DataProcess("Raman").BuildTrainingData()
 libs_x, libs_y = DataProcess("LIBS").BuildTrainingData()
-x = np.dstack([ftir_x, raman_x, libs_x]).reshape([122,3,4000])
+x = np.vstack([ftir_x, raman_x, libs_x]).reshape([122,3,4000])
 dataset = MakeDataset(x, ftir_y) #ftir_y, raman_y and libs_y are the same
 
 #Model Initialisation
@@ -70,13 +72,10 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             optimizer.step()
     
     #Evaluation
-    with torch.no_grad():
-        for _, data in tqdm(enumerate(test_dataloader), total = len(test_dataloader.dataset)//test_dataloader.batch_size):
-            features = data['features'][:,DataType[InputData]].to(device)
-            groundtruth = data['features'][:,DataType[OutputData]].to(device)
-            synthetic_data = SCAE(features)
-            fid = ReturnFID(groundtruth, synthetic_data, device)
-            fid_scores.append(fid)
+    use_pretrained = False
+    synthetic_data, groundtruth = GenerateSCAEData(use_pretrained, SCAE, test_dataloader, InputData, OutputData)
+    fid = ReturnFID(groundtruth, synthetic_data, device)
+    fid_scores.append(fid)
 
 fid_average = sum(fid_scores)/len(fid_scores)
 print("FID score: " + "%.3f" % fid_average)

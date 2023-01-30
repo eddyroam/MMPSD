@@ -10,7 +10,6 @@ from torch.utils.data import Dataset
 class DataProcess():
     def __init__(self, Datatype):
         self.Datatype = Datatype
-        self.x, self.y = self.BuildTrainingData()
 
     def Preprocess(self, array, scaling=True, baseline=True, smoothing=True):
         if scaling == True:

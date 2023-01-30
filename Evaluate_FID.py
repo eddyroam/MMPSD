@@ -38,7 +38,7 @@ def ReturnFID(real_data, synthetic_data, device):
     """
     size = real_data.shape[0]
     
-    model = InceptionNetwork(4).to(device)
+    model = InceptionNetwork(5).to(device)
     model.load_state_dict(torch.load("Model/Pretrained Inception Net.pt", map_location=torch.device('cpu')))
     model.fc2 = Identity()
     
